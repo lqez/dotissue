@@ -1,8 +1,5 @@
 #!/usr/bin/env python
-try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup  # NOQA
+from setuptools import setup
 import os.path
 
 try:
