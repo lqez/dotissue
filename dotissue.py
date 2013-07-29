@@ -25,7 +25,7 @@ parser_config.set_defaults(func=cmd_config)
 
 def main():
     config = ConfigParser.RawConfigParser()
-    config.read('.gitsue')
+    config.read('.issue')
 
     args = parser.parse_args()
     args.func(args, config)
