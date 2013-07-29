@@ -4,7 +4,7 @@ import ConfigParser
 
 def main():
     config = ConfigParser.RawConfigParser()
-    config.read('.gitsue')
+    config.read('.issue')
 
     for section in config.sections():
         for option in config.options(section):
