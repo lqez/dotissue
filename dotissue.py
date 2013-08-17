@@ -1,6 +1,4 @@
-#!/usr/bin/python
 import argparse
-import os
 import sys
 import ConfigParser
 from time import timezone
@@ -29,12 +27,14 @@ def cmd_init(args, config):
         sys.exit('Already initialized.')
 
     # Initialize with README.md
-#    current_mask = os.umask(0)
-#    os.umask(current_mask)
-
     blob = Blob.from_string("This is a branch for dotissue.\n")
     tree = Tree()
     tree.add("README.md", 0100644, blob.id)
+
+    object_store = repo.object_store
+    object_store.add_object(blob)
+    object_store.add_object(tree)
+
     repo.do_commit("Initial commit",
                    commit_timezone=-timezone,
                    tree=tree.id,
