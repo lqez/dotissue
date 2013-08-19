@@ -1,7 +1,22 @@
 Dot Issue
 =========
 
-Yet another issue tracker for collaborative works.
 
+`dotissue`는 git 기반으로 동작하는 분산 이슈 트래킹 시스템입니다.
+
+git에 dotissue를 위한 브랜치를 생성하고, 이를 통해 이슈를 관리합니다.
+
+  - 커맨드라인 인터페이스가 기본으로 제공됩니다.
+  - 소스 클론은 ssh, 이슈 등록을 위해 https 인증을 별도로 사용할 필요가 없습니다.
+  - 이슈의 변경과 병합 작업을 git 에게 모두 맡겨 처리합니다.
+  - git 으로 모든 이슈를 관리할 수 있어, 이슈 관련 서비스를 별도로 운영할 필요가 없습니다.
+
+
+ROADMAP
+-------
+
+  - (예정) 웹 인터페이스를 통해 이슈 목록과 내용을 확인할 수 있습니다.
+  - (예정) 웹 인터페이스를 통해 이슈 상태의 변경이 가능합니다.
+  - (예정) 이슈에 첨부파일 추가 기능.
 
 Demo video : <http://www.youtube.com/watch?v=7p8Ofiv0-dY>
