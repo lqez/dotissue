@@ -9,6 +9,8 @@ from dulwich.objects import Blob, Tree
 
 
 DI_BRANCH = 'dotissue'
+DI_ISSUES = 'issues'
+DI_LABELS = 'labels'
 
 
 def get_branch_list(repo):
@@ -16,8 +18,6 @@ def get_branch_list(repo):
 
 
 def cmd_init(args, config):
-    print 'init command'
-
     try:
         repo = Repo(args.path)
     except NotGitRepository:
@@ -26,19 +26,31 @@ def cmd_init(args, config):
     if DI_BRANCH in get_branch_list(repo):
         sys.exit('Already initialized.')
 
-    # Initialize with README.md
-    blob = Blob.from_string("This is a branch for dotissue.\n")
-    tree = Tree()
-    tree.add("README.md", 0100644, blob.id)
-
     object_store = repo.object_store
-    object_store.add_object(blob)
-    object_store.add_object(tree)
 
-    repo.do_commit("Initial commit",
-                   commit_timezone=-timezone,
-                   tree=tree.id,
-                   ref='refs/heads/%s' % DI_BRANCH)
+    # Initialize with README.md
+    tree = Tree()
+
+    blob = Blob.from_string("This is a branch for dotissue.\n")
+    tree.add("README.md", 0100644, blob.id)
+    object_store.add_object(blob)
+
+    blob = Blob.from_string("This is a directory for issues.\n")
+    tree.add("%s/README.md" % DI_ISSUES, 0100644, blob.id)
+    object_store.add_object(blob)
+
+    blob = Blob.from_string("This is a directory for labels.\n")
+    tree.add("%s/README.md" % DI_LABELS, 0100644, blob.id)
+    object_store.add_object(blob)
+
+    object_store.add_object(tree)
+    commit = repo.do_commit("Initial commit",
+                            commit_timezone=-timezone,
+                            tree=tree.id,
+                            ref='refs/heads/%s' % DI_BRANCH)
+
+    print 'Initialized by %s. :^D' % commit
+    sys.exit(0)
 
 
 def cmd_new(args, config):
