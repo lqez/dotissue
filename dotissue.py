@@ -1,6 +1,10 @@
-import argparse
-import sys
 import ConfigParser
+import argparse
+import os
+import sys
+import tempfile
+
+from subprocess import call
 from time import timezone
 
 from dulwich.errors import NotGitRepository
@@ -28,22 +32,29 @@ def cmd_init(args, config):
 
     object_store = repo.object_store
 
-    # Initialize with README.md
     tree = Tree()
+#    tree_issues = Tree()
+#    tree_labels = Tree()
 
     blob = Blob.from_string("This is a branch for dotissue.\n")
     tree.add("README.md", 0100644, blob.id)
     object_store.add_object(blob)
-
-    blob = Blob.from_string("This is a directory for issues.\n")
-    tree.add("%s/README.md" % DI_ISSUES, 0100644, blob.id)
-    object_store.add_object(blob)
-
-    blob = Blob.from_string("This is a directory for labels.\n")
-    tree.add("%s/README.md" % DI_LABELS, 0100644, blob.id)
-    object_store.add_object(blob)
-
+#
+#    blob = Blob.from_string("This is a directory for issues.\n")
+#    tree_issues.add("README.md", 0100644, blob.id)
+#    object_store.add_object(blob)
+#
+#    blob = Blob.from_string("This is a directory for labels.\n")
+#    tree_labels.add("README.md", 0100644, blob.id)
+#    object_store.add_object(blob)
+#
+#    tree.add(DI_ISSUES, 0040000, tree_issues.id)
+#    tree.add(DI_LABELS, 0040000, tree_labels.id)
+#
+#    object_store.add_object(tree_issues)
+#    object_store.add_object(tree_labels)
     object_store.add_object(tree)
+
     commit = repo.do_commit("Initial commit",
                             commit_timezone=-timezone,
                             tree=tree.id,
@@ -54,11 +65,57 @@ def cmd_init(args, config):
 
 
 def cmd_new(args, config):
-    print 'new command'
+    try:
+        repo = Repo(args.path)
+    except NotGitRepository:
+        sys.exit('It does not look like a valid repository.')
+
+    if DI_BRANCH not in get_branch_list(repo):
+        sys.exit('Not initialized by dotissue. Use init first.')
+
+    if not args.title:
+        EDITOR = os.environ.get('EDITOR', 'vim')
+        initial_message = "<Issue title here>"
+
+        with tempfile.NamedTemporaryFile(suffix=".tmp") as msgfile:
+            msgfile.write(initial_message)
+            msgfile.flush()
+            call([EDITOR, msgfile.name])
+
+            with open(msgfile.name, 'r') as f:
+                args.title = f.read()
+
+    title = args.title.strip()
+    object_store = repo.object_store
+    tree = repo[repo['refs/heads/%s' % DI_BRANCH].tree]
+
+    tree_issue = Tree()
+
+    blob = Blob.from_string(title)
+    tree_issue.add("_title", 0100644, blob.id)
+    object_store.add_object(blob)
+
+    tree.add(blob.id, 0040000, tree_issue.id)
+
+    object_store.add_object(tree_issue)
+    object_store.add_object(tree)
+
+    msg = (title[:60] + '..') if len(title) > 60 else title
+    commit = repo.do_commit("New issue: %s" % msg,
+                            commit_timezone=-timezone,
+                            tree=tree.id,
+                            ref='refs/heads/%s' % DI_BRANCH)
+
+    print 'Issue created : %s' % commit
+    sys.exit(0)
 
 
 def cmd_list(args, config):
     print 'list command'
+
+
+def cmd_reply(args, config):
+    print 'reply command'
 
 
 def cmd_help(args, config):
@@ -70,6 +127,7 @@ def cmd_config(args, config):
         for option in config.options(section):
             print section, option, config.get(section, option)
 
+
 parser = argparse.ArgumentParser(prog='dotissue')
 subparsers = parser.add_subparsers(help='sub-command help')
 
@@ -78,9 +136,18 @@ parser_init.add_argument('--path', default='.', metavar='path', type=str, help='
 parser_init.set_defaults(func=cmd_init)
 
 parser_new = subparsers.add_parser('new', help='Create new issue')
+parser_new.add_argument('--path', default='.', metavar='path', type=str, help='Path of the working repository')
+parser_new.add_argument('title', nargs='?', default='', metavar='title', type=str, help='Issue title')
 parser_new.set_defaults(func=cmd_new)
 
+parser_reply = subparsers.add_parser('reply', help='Reply to issue')
+parser_reply.add_argument('--path', default='.', metavar='path', type=str, help='Path of the working repository')
+parser_reply.add_argument('issue', metavar='issue', type=str, help='Hash for the issue')
+parser_reply.add_argument('msg', nargs='?', default='', metavar='msg', type=str, help='Message')
+parser_reply.set_defaults(func=cmd_reply)
+
 parser_list = subparsers.add_parser('list', help='list all issues')
+parser_list.add_argument('--path', default='.', metavar='path', type=str, help='Path of the working repository')
 parser_list.set_defaults(func=cmd_list)
 
 parser_help = subparsers.add_parser('help', help='Show help')
