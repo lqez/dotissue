@@ -111,7 +111,62 @@ def cmd_new(args, config):
 
 
 def cmd_list(args, config):
-    print 'list command'
+    try:
+        repo = Repo(args.path)
+    except NotGitRepository:
+        sys.exit('It does not look like a valid repository.')
+
+    if DI_BRANCH not in get_branch_list(repo):
+        sys.exit('Not initialized by dotissue. Use init first.')
+
+    timemaps = {}
+
+    c = repo['refs/heads/%s' % DI_BRANCH]
+    while True:
+        tree = repo[c.tree]
+
+        for entry in tree.iteritems():
+            obj = repo[entry.sha]
+
+            if obj.type != 2:
+                continue
+
+            for item in obj.items():
+                if item.path != '_title':
+                    continue
+
+            timemaps[item.sha] = c.commit_time
+
+
+        try:
+            c = repo[c.parents[0]]
+        except IndexError:
+            break
+
+
+    tree = repo[repo['refs/heads/%s' % DI_BRANCH].tree]
+
+    from datetime import datetime
+
+    issues = []
+
+    for entry in tree.iteritems():
+        obj = repo[entry.sha]
+
+        if obj.type != 2:
+            continue
+
+        for item in obj.items():
+            if item.path != '_title':
+                continue
+
+            issues.append((item, timemaps[item.sha]))
+
+    issues.sort(key=lambda x: x[1], reverse=True)
+
+    for item, time in issues:
+        print 'issue(%s) : %s at %s' % (item.sha[:7], repo[item.sha], datetime.fromtimestamp(time))
+
 
 
 def cmd_reply(args, config):
